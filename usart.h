@@ -35,7 +35,7 @@ extern FILE usart_input;
 
 /* Function declaration */
 void usart_init(void);
-int usart_putchar(char c, FILE *stream);
-int usart_getchar(FILE *stream);
+int usart_putchar_async(char c, FILE *stream);
+int usart_getchar_sync(FILE *stream);
 
 #endif // AVR_USART_H
