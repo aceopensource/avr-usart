@@ -3,11 +3,11 @@
  * Christopher Bero <berocs@acedb.co>
  */
 
-#include "uart.h"
+#include "usart.h"
 
 struct usart_buffer {
     char buffer[USART_BUF_SIZE];
-    uint8_t first;
+    volatile uint8_t first;
     uint8_t last;
 };
 
@@ -80,6 +80,12 @@ void usart_init(void)
 int usart_putchar_async(char data, FILE * stream)
 {
     uint8_t next = (buf_tx.last + 1) % USART_BUF_SIZE;
+
+    while (next == buf_tx.first)
+	{
+//		PINB |= (1 << PB5);
+		_delay_ms(2);
+	}
 
     if (next != buf_tx.first)
 	{

@@ -24,7 +24,7 @@
 #include <stdio.h>
 
 /* Bitmasks for circular buffer */
-#define USART_BUF_SIZE (32)
+#define USART_BUF_SIZE (16)
 
 /* Datatype declaration */
 struct usart_buffer;
