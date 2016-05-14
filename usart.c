@@ -5,10 +5,15 @@
 
 #include "usart.h"
 
+#define POS_FIRST 	(0xF0)
+#define POS_LAST 	(0x0F)
+
+#define TX_POS_FIRST 	((buf_tx.pos & POS_FIRST) >> 4)
+#define TX_POS_LAST 	(buf_tx.pos & POS_LAST)
+
 struct usart_buffer {
     char buffer[USART_BUF_SIZE];
-    volatile uint8_t first;
-    uint8_t last;
+    volatile uint8_t pos;
 };
 
 static struct usart_buffer buf_rx, buf_tx;
@@ -55,10 +60,13 @@ void usart_init(void)
 				(0 << UDRIE0) 	| (1 << RXEN0) 	| \
 				(1 << TXEN0) 	| (0 << UCSZ02);
 
-	buf_rx.first 	= 0;
-	buf_rx.last 	= 0;
-	buf_tx.first 	= 0;
-	buf_tx.last 	= 0;
+//	buf_rx.first 	= 0;
+//	buf_rx.last 	= 0;
+//	buf_tx.first 	= 0;
+//	buf_tx.last 	= 0;
+
+	buf_tx.pos = 0;
+	buf_rx.pos = 0;
 
 	sei();
 }
@@ -79,18 +87,18 @@ void usart_init(void)
 
 int usart_putchar_async(char data, FILE * stream)
 {
-    uint8_t next = (buf_tx.last + 1) % USART_BUF_SIZE;
+    uint8_t next = (TX_POS_LAST + 1) % USART_BUF_SIZE;
 
-    while (next == buf_tx.first)
+    while (next == TX_POS_FIRST)
 	{
 //		PINB |= (1 << PB5);
-		_delay_ms(2);
+		_delay_ms(1);
 	}
 
-    if (next != buf_tx.first)
+    if (next != TX_POS_FIRST)
 	{
-        buf_tx.buffer[buf_tx.last] = data;
-        buf_tx.last = next;
+        buf_tx.buffer[TX_POS_LAST] = data;
+        buf_tx.pos = (buf_tx.pos & ~POS_LAST) | (next & POS_LAST);
         // enable interrupt
 		UCSR0B |= (1 << UDRIE0);
     }
@@ -136,10 +144,11 @@ int usart_getchar_sync(FILE * stream)
 
 ISR(USART_UDRE_vect)
 {
-	if (buf_tx.first != buf_tx.last)
+	if (TX_POS_FIRST != TX_POS_LAST)
 	{
-		UDR0 = buf_tx.buffer[buf_tx.first];
-		buf_tx.first = (buf_tx.first + 1) % USART_BUF_SIZE;
+		UDR0 = buf_tx.buffer[TX_POS_FIRST];
+		//buf_tx.pos &= ~POS_FIRST;
+		buf_tx.pos = (buf_tx.pos & ~POS_FIRST) | (((TX_POS_FIRST + 1) % USART_BUF_SIZE) << 4);
 	}
 	else
 	{
