@@ -91,21 +91,17 @@ int usart_putchar_async(char data, FILE * stream)
 
     while (next == TX_POS_FIRST)
 	{
-//		PINB |= (1 << PB5);
+		//PINB |= (1 << PB5);
+//		PORTB |= (1 << PB5);
+//		_delay_ms(50);
+//		PORTB &= ~(1 << PB5);
 		_delay_ms(1);
 	}
 
-    if (next != TX_POS_FIRST)
-	{
-        buf_tx.buffer[TX_POS_LAST] = data;
-        buf_tx.pos = (buf_tx.pos & ~POS_LAST) | (next & POS_LAST);
-        // enable interrupt
-		UCSR0B |= (1 << UDRIE0);
-    }
-    else
-	{
-		return 1;
-	}
+	buf_tx.buffer[TX_POS_LAST] = data;
+	buf_tx.pos = (buf_tx.pos & ~POS_LAST) | (next & POS_LAST);
+	// enable interrupt
+	UCSR0B |= (1 << UDRIE0);
 
     if (data == '\n')
 	{
@@ -147,6 +143,7 @@ ISR(USART_UDRE_vect)
 	if (TX_POS_FIRST != TX_POS_LAST)
 	{
 		UDR0 = buf_tx.buffer[TX_POS_FIRST];
+		buf_tx.buffer[TX_POS_FIRST] = 'Z';
 		//buf_tx.pos &= ~POS_FIRST;
 		buf_tx.pos = (buf_tx.pos & ~POS_FIRST) | (((TX_POS_FIRST + 1) % USART_BUF_SIZE) << 4);
 	}
