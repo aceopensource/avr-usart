@@ -21,7 +21,7 @@ int send_flag;
 // Debugging tool, toggles "pin 13"
 //	PINB |= (1 << PB5);
 
-void usart_init(void)
+void usart_init_async(void)
 {
     UBRR0H = UBRRH_VALUE;
     UBRR0L = UBRRL_VALUE;
@@ -62,20 +62,6 @@ void usart_init(void)
 
 	sei();
 }
-
-//uint8_t usart_poll()
-//{
-//	if (send_flag == 1)
-//	{
-//		if (buf_tx.first != buf_tx.last)
-//		{
-//			UDR0 = buf_tx.buffer[buf_tx.first];
-//			buf_tx.first = (buf_tx.first + 1) % USART_BUF_SIZE;
-//		}
-//		send_flag = 0;
-//	}
-//	return 0;
-//}
 
 int usart_putchar_async(char data, FILE * stream)
 {

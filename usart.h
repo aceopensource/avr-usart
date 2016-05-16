@@ -34,7 +34,7 @@ extern FILE usart_output;
 extern FILE usart_input;
 
 /* Function declaration */
-void usart_init(void);
+void usart_init_async(void);
 int usart_putchar_async(char c, FILE *stream);
 int usart_getchar_sync(FILE *stream);
 
