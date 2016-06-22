@@ -30,7 +30,7 @@ void usart_init(void)
 #	if USE_2X
 		UCSR0A |= (1 << U2X0);
 #	else
-		UCSR0A &= (0 << U2X0);
+		UCSR0A &= ~(1 << U2X0);
 #	endif
 
 	/** UCSR0C 	- Datasheet p194
@@ -61,6 +61,9 @@ void usart_init(void)
 	buf_tx.first 	= 0;
 	buf_tx.last 	= 0;
 
+	stdout = &usart_output;
+    stdin  = &usart_input;
+
 	sei();
 }
 #else
@@ -69,14 +72,23 @@ void usart_init(void)
     UBRR0H = UBRRH_VALUE;
     UBRR0L = UBRRL_VALUE;
 
+#	if USE_2X
+		UCSR0A |= (1 << U2X0);
+#	else
+		UCSR0A &= ~(1 << U2X0);
+#	endif
+
     UCSR0C = 	(0 << UMSEL01) 	| 	(0 << UMSEL00) 	| \
-				(0 << UPM01) 	| 	(0 << UPM00) 	| \
+				(1 << UPM01) 	| 	(0 << UPM00) 	| \
 				(0 << USBS0) 	| 	(1 << UCSZ01) 	| \
 				(1 << UCSZ00) 	| 	(0 << UCPOL0);
 
 	UCSR0B = 	(0 << RXCIE0) 	| (0 << TXCIE0) | \
 				(0 << UDRIE0) 	| (1 << RXEN0) 	| \
 				(1 << TXEN0) 	| (0 << UCSZ02);
+
+	stdout = &usart_output;
+    stdin  = &usart_input;
 }
 #endif // USART_ASYNC
 
@@ -113,8 +125,14 @@ int usart_putchar(char data, FILE * stream)
 #else
 int usart_putchar(char data, FILE * stream)
 {
-    while (~UCSR0A & (1 << UDRE0));
+    //while (!(UCSR0A & (1 << UDRE0)));
     UDR0 = data;
+
+    // Confirm byte is sent, slower but
+    // prevents serial garbage with LPM.
+    while (!(UCSR0A & (1 << TXC0)));
+    UCSR0A |= (1 << TXC0);
+
     if (data == '\n') {
         usart_putchar('\r', stream);
     }
@@ -134,7 +152,7 @@ int usart_getchar(FILE * stream)
 #else
 int usart_getchar(FILE * stream)
 {
-    while (~UCSR0A & (1 << RXC0));
+    while (!(UCSR0A & (1 << RXC0)));
     return UDR0;
 }
 #endif // USART_ASYNC
