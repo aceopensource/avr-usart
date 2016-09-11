@@ -4,7 +4,7 @@
  */
 
 #ifndef AVR_USART_H
-#define AVR_USART_H
+#define AVR_USART_H 1
 
 /* Must be defined before setbaud.h is retrieved */
 #ifndef F_CPU
@@ -21,7 +21,11 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#include <stdio.h>
+//#include <stdio.h>
+
+#ifndef NULL
+#define NULL ((void *) 0)
+#endif
 
 /* Bitmasks for circular buffer */
 #define USART_BUF_SIZE (16)
@@ -30,12 +34,12 @@
 struct usart_buffer;
 
 /* Variable declaration */
-extern FILE usart_output;
-extern FILE usart_input;
+//extern FILE usart_output;
+//extern FILE usart_input;
 
 /* Function declaration */
 void usart_init(void);
-int usart_putchar(char c, FILE *stream);
-int usart_getchar(FILE *stream);
+void usart_putchar(void * nothing, char c);
+//int usart_getchar(FILE *stream);
 
 #endif // AVR_USART_H

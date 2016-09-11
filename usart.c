@@ -11,8 +11,8 @@ struct usart_buffer {
     volatile uint8_t last;
 };
 
-FILE usart_output = FDEV_SETUP_STREAM(usart_putchar, NULL, _FDEV_SETUP_WRITE);
-FILE usart_input  = FDEV_SETUP_STREAM(NULL, usart_getchar, _FDEV_SETUP_READ);
+//FILE usart_output = FDEV_SETUP_STREAM(usart_putchar, NULL, _FDEV_SETUP_WRITE);
+//FILE usart_input  = FDEV_SETUP_STREAM(NULL, usart_getchar, _FDEV_SETUP_READ);
 
 #ifdef USART_ASYNC
 static struct usart_buffer buf_rx, buf_tx;
@@ -61,8 +61,8 @@ void usart_init(void)
 	buf_tx.first 	= 0;
 	buf_tx.last 	= 0;
 
-	stdout = &usart_output;
-    stdin  = &usart_input;
+//	stdout = &usart_output;
+//    stdin  = &usart_input;
 
 	sei();
 }
@@ -79,7 +79,7 @@ void usart_init(void)
 #	endif
 
     UCSR0C = 	(0 << UMSEL01) 	| 	(0 << UMSEL00) 	| \
-				(1 << UPM01) 	| 	(0 << UPM00) 	| \
+				(0 << UPM01) 	| 	(0 << UPM00) 	| \
 				(0 << USBS0) 	| 	(1 << UCSZ01) 	| \
 				(1 << UCSZ00) 	| 	(0 << UCPOL0);
 
@@ -87,8 +87,8 @@ void usart_init(void)
 				(0 << UDRIE0) 	| (1 << RXEN0) 	| \
 				(1 << TXEN0) 	| (0 << UCSZ02);
 
-	stdout = &usart_output;
-    stdin  = &usart_input;
+//	stdout = &usart_output;
+//    stdin  = &usart_input;
 }
 #endif // USART_ASYNC
 
@@ -123,39 +123,76 @@ int usart_putchar(char data, FILE * stream)
     return 0;
 }
 #else
-int usart_putchar(char data, FILE * stream)
+//int usart_putchar(char data, FILE * stream)
+void usart_putchar(void* nothing, char data)
 {
-    //while (!(UCSR0A & (1 << UDRE0)));
+//	uint8_t timeout;
+
+//	timeout = 0;
+	OCR1A = 2;
+    while (!(UCSR0A & (1 << UDRE0)))
+	{
+		//_delay_us(50);
+//		timeout++;
+//		if (timeout > 20)
+//			return 1;
+	}
+	OCR1A = 0;
+
     UDR0 = data;
 
     // Confirm byte is sent, slower but
     // prevents serial garbage with LPM.
-    while (!(UCSR0A & (1 << TXC0)));
+//    timeout = 0;
+    OCR1A = 2;
+    while (!(UCSR0A & (1 << TXC0)))
+	{
+		//_delay_us(50);
+//		timeout++;
+//		if (timeout > 20)
+//			return 1;
+	}
+	OCR1A = 0;
+
     UCSR0A |= (1 << TXC0);
 
     if (data == '\n') {
-        usart_putchar('\r', stream);
+//        usart_putchar('\r', stream);
+		usart_putchar(NULL, '\r');
     }
-    return 0;
+//    return 0;
+	return;
 }
 #endif // USART_ASYNC
 
 
-#ifdef USART_ASYNC
-int usart_getchar(FILE * stream)
-{
-    uint8_t read_pointer = (buf_rx.first + 1) % USART_BUF_SIZE;
-
-    buf_rx.first = read_pointer;
-    return buf_rx.buffer[read_pointer];
-}
-#else
-int usart_getchar(FILE * stream)
-{
-    while (!(UCSR0A & (1 << RXC0)));
-    return UDR0;
-}
-#endif // USART_ASYNC
+//#ifdef USART_ASYNC
+//int usart_getchar(FILE * stream)
+//{
+//    uint8_t read_pointer = (buf_rx.first + 1) % USART_BUF_SIZE;
+//
+//    buf_rx.first = read_pointer;
+//    return buf_rx.buffer[read_pointer];
+//}
+//#else
+//int usart_getchar(FILE * stream)
+//{
+////	uint8_t timeout;
+//
+////	timeout = 0;
+//	OCR1A = 2;
+//    while (!(UCSR0A & (1 << RXC0)))
+//	{
+//		//_delay_us(50);
+////		timeout++;
+////		if (timeout > 20)
+////			return 1;
+//	}
+//	OCR1A = 0;
+//
+//    return UDR0;
+//}
+//#endif // USART_ASYNC
 
 
 #ifdef USART_ASYNC
