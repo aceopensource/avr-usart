@@ -11,6 +11,8 @@ struct usart_buffer {
     volatile uint8_t last;
 };
 
+struct usart_buffer rxbuf;
+
 //FILE usart_output = FDEV_SETUP_STREAM(usart_putchar, NULL, _FDEV_SETUP_WRITE);
 //FILE usart_input  = FDEV_SETUP_STREAM(NULL, usart_getchar, _FDEV_SETUP_READ);
 
@@ -83,14 +85,24 @@ void usart_init(void)
 				(0 << USBS0) 	| 	(1 << UCSZ01) 	| \
 				(1 << UCSZ00) 	| 	(0 << UCPOL0);
 
-	UCSR0B = 	(0 << RXCIE0) 	| (0 << TXCIE0) | \
+	UCSR0B = 	(1 << RXCIE0) 	| (0 << TXCIE0) | \
 				(0 << UDRIE0) 	| (1 << RXEN0) 	| \
 				(1 << TXEN0) 	| (0 << UCSZ02);
+
+	rxbuf.first = 0;
+	rxbuf.last = 0;
 
 //	stdout = &usart_output;
 //    stdin  = &usart_input;
 }
 #endif // USART_ASYNC
+
+void usart_close()
+{
+	UCSR0C = 6;
+	UCSR0B = 0;
+	UCSR0A = 0;
+}
 
 #ifdef USART_ASYNC
 int usart_putchar(char data, FILE * stream)
@@ -128,6 +140,11 @@ void usart_putchar(void* nothing, char data)
 {
 //	uint8_t timeout;
 
+	if (data == '\n') {
+//		usart_putchar('\r', stream);
+		usart_putchar(NULL, '\r');
+    }
+
 //	timeout = 0;
 	OCR1A = 2;
     while (!(UCSR0A & (1 << UDRE0)))
@@ -155,44 +172,53 @@ void usart_putchar(void* nothing, char data)
 	OCR1A = 0;
 
     UCSR0A |= (1 << TXC0);
+    UCSR0A &= ~(1<<UDRE0);
 
-    if (data == '\n') {
-//        usart_putchar('\r', stream);
-		usart_putchar(NULL, '\r');
-    }
 //    return 0;
 	return;
 }
 #endif // USART_ASYNC
 
 
-//#ifdef USART_ASYNC
-//int usart_getchar(FILE * stream)
-//{
-//    uint8_t read_pointer = (buf_rx.first + 1) % USART_BUF_SIZE;
+#ifdef USART_ASYNC
+int usart_getchar(FILE * stream)
+{
+    uint8_t read_pointer = (buf_rx.first + 1) % USART_BUF_SIZE;
+
+    buf_rx.first = read_pointer;
+    return buf_rx.buffer[read_pointer];
+}
+#else
+int usart_getchar(char * data)//FILE * stream)
+{
+	if (rxbuf.first != rxbuf.last)
+	{
+		*data = rxbuf.buffer[rxbuf.first];
+		rxbuf.first = (rxbuf.first + 1) % USART_BUF_SIZE;
+	}
+	else
+	{
+		return 1;
+	}
+
+//	uint8_t timeout;
 //
-//    buf_rx.first = read_pointer;
-//    return buf_rx.buffer[read_pointer];
-//}
-//#else
-//int usart_getchar(FILE * stream)
-//{
-////	uint8_t timeout;
-//
-////	timeout = 0;
+//	timeout = 0;
 //	OCR1A = 2;
 //    while (!(UCSR0A & (1 << RXC0)))
 //	{
-//		//_delay_us(50);
-////		timeout++;
-////		if (timeout > 20)
-////			return 1;
+//		_delay_ms(1);
+//		timeout++;
+//		if (timeout > 10)
+//			return 1;
 //	}
 //	OCR1A = 0;
 //
-//    return UDR0;
-//}
-//#endif // USART_ASYNC
+//	*data = UDR0;
+
+    return 0;
+}
+#endif // USART_ASYNC
 
 
 #ifdef USART_ASYNC
@@ -222,4 +248,22 @@ ISR(USART_UDRE_vect)
 	}
 }
 #endif // USART_ASYNC
+
+ISR(USART_RX_vect)
+{
+	uint8_t next;
+	while ((UCSR0A & (1 << RXC0)))
+	{
+		next = (rxbuf.last + 1) % USART_BUF_SIZE;
+		if (next != rxbuf.first)
+		{
+			rxbuf.buffer[rxbuf.last] = UDR0;
+			rxbuf.last = next;
+		}
+		else
+		{
+			next = UDR0; // Drop the incoming data...
+		}
+	}
+}
 
