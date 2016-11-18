@@ -3,7 +3,7 @@
  * Christopher Bero <berocs@acedb.co>
  */
 
-#include "usart.h"
+#include "avr-usart.h"
 
 struct usart_buffer {
     char buffer[USART_BUF_SIZE];
