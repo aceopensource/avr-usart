@@ -146,7 +146,7 @@ void usart_putchar(void* nothing, char data)
     }
 
 //	timeout = 0;
-	OCR1A = 2;
+//	OCR1A = 2;
     while (!(UCSR0A & (1 << UDRE0)))
 	{
 		//_delay_us(50);
@@ -154,14 +154,14 @@ void usart_putchar(void* nothing, char data)
 //		if (timeout > 20)
 //			return 1;
 	}
-	OCR1A = 0;
+//	OCR1A = 0;
 
     UDR0 = data;
 
     // Confirm byte is sent, slower but
     // prevents serial garbage with LPM.
 //    timeout = 0;
-    OCR1A = 2;
+//    OCR1A = 2;
     while (!(UCSR0A & (1 << TXC0)))
 	{
 		//_delay_us(50);
@@ -169,7 +169,7 @@ void usart_putchar(void* nothing, char data)
 //		if (timeout > 20)
 //			return 1;
 	}
-	OCR1A = 0;
+//	OCR1A = 0;
 
     UCSR0A |= (1 << TXC0);
     UCSR0A &= ~(1<<UDRE0);
